@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Warehouse Inventory Dashboard
 
-## Getting Started
+Frontend technical test project for **Frontend Engineer Interview**.  
+This project simulates a warehouse inventory system with a **Maker-Checker approval workflow**, where stock changes made by **Staff** must be reviewed by an **Officer** before updating the live inventory.
 
-First, run the development server:
+## Live Demo
+Deployed URL: [Add your Vercel link here]
 
+---
+
+## Tech Stack
+
+- **Next.js (App Router)**
+- **TypeScript**
+- **Tailwind CSS**
+- **shadcn/ui**
+- **Zustand** (state management)
+- **TanStack Table** (searchable/sortable data table)
+- **Recharts** (interactive stock chart)
+- **localStorage** (mock persistence)
+- **React Hook Form + Zod** (form validation)
+- **Sonner** (toast notifications)
+
+---
+
+## How to Run
+
+### 1. Open Terminal / CMD first
+- Before running the project, please open:
+- Terminal (Mac/Linux)
+- Command Prompt (CMD) or PowerShell (Windows)
+
+### 2. Before running this project, make sure you have:
+  - Node.js version 22
+  - npm installed
+  - You can check your Node.js version by running:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+node -v
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Clone the repository
+```bash
+git clone https://github.com/reynaldysaputra/warehouse-inventory-dashboard.git
+cd warehouse-inventory-dashboard
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Install dependencies
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Run development server
+```bash
+npm rum dev
+```
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 6. Open in browser
+```bash
+http://localhost:3000/
+```
