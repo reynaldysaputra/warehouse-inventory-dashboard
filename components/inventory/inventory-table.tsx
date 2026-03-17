@@ -1,52 +1,170 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  SortingState,
+  useReactTable,
+} from "@tanstack/react-table";
+import { toast } from "sonner";
+import { InventoryItem } from "@/types/inventory";
 import { useInventoryStore } from "@/store/inventory-store";
 import { useAuthStore } from "@/store/auth-store";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { InventoryItem } from "@/types/inventory";
 import { InventoryFormModal } from "./inventory-form-modal";
+import { EmptyState } from "@/components/shared/empty-state";
+import { formatCurrency } from "@/lib/helpers";
 
 export function InventoryTable() {
-  const { inventory, createRequest, isLoading } = useInventoryStore();
+  const { inventory, createRequest, requests, isLoading } = useInventoryStore();
   const { role } = useAuthStore();
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof InventoryItem>("productName");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
-  const filteredData = useMemo(() => {
-    const filtered = inventory.filter((item) =>
-      [item.sku, item.productName, item.category, item.supplier]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase())
+  const pendingByItemId = useMemo(() => {
+    const map = new Set(
+      requests.filter((r) => r.status === "pending").map((r) => r.itemId)
     );
-
-    return filtered.sort((a, b) => {
-      const aValue = a[sortKey];
-      const bValue = b[sortKey];
-
-      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [inventory, search, sortKey, sortOrder]);
+    return map;
+  }, [requests]);
 
   const handleDelete = async (item: InventoryItem) => {
+    if (pendingByItemId.has(item.id)) {
+      toast.error("This item already has a pending request.");
+      return;
+    }
+
     await createRequest("delete", {
       itemId: item.id,
       originalData: item,
     });
-    alert("Pending deletion request submitted.");
+
+    toast.success("Pending deletion request submitted.");
   };
 
+  const columns = useMemo<ColumnDef<InventoryItem>[]>(
+    () => [
+      {
+        accessorKey: "sku",
+        header: "SKU",
+      },
+      {
+        accessorKey: "productName",
+        header: "Product Name",
+      },
+      {
+        accessorKey: "category",
+        header: "Category",
+      },
+      {
+        accessorKey: "price",
+        header: "Price",
+        cell: ({ row }) => formatCurrency(row.original.price),
+      },
+      {
+        accessorKey: "quantity",
+        header: "Quantity",
+      },
+      {
+        accessorKey: "supplier",
+        header: "Supplier",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) =>
+          pendingByItemId.has(row.original.id) ? (
+            <Badge variant="secondary">Pending Request</Badge>
+          ) : (
+            <Badge variant="outline">Live</Badge>
+          ),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => {
+          const item = row.original;
+          const hasPending = pendingByItemId.has(item.id);
+
+          if (role !== "staff") {
+            return <span className="text-xs text-muted-foreground">View only</span>;
+          }
+
+          return (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={hasPending}
+                onClick={() => {
+                  setSelectedItem(item);
+                  setOpen(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={hasPending || isLoading}
+                onClick={() => handleDelete(item)}
+              >
+                Delete
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    [role, isLoading, pendingByItemId]
+  );
+
+  const table = useReactTable({
+    data: inventory,
+    columns,
+    state: {
+      sorting,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const item = row.original;
+      const text = [
+        item.sku,
+        item.productName,
+        item.category,
+        item.supplier,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return text.includes(String(filterValue).toLowerCase());
+    },
+  });
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Live Inventory</CardTitle>
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <CardTitle>Live Inventory</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Current approved inventory data (staff changes require approval).
+          </p>
+        </div>
+
         {role === "staff" && (
           <Button
             onClick={() => {
@@ -60,87 +178,81 @@ export function InventoryTable() {
       </CardHeader>
 
       <CardContent>
-        <div className="mb-4 flex flex-wrap gap-3">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <input
             type="text"
-            placeholder="Search inventory..."
-            className="w-full max-w-sm rounded-md border px-3 py-2"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search SKU, product, category, supplier..."
+            className="w-full rounded-md border px-3 py-2 md:max-w-sm"
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
           />
 
-          <select
-            className="rounded-md border px-3 py-2"
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as keyof InventoryItem)}
-          >
-            <option value="productName">Product Name</option>
-            <option value="sku">SKU</option>
-            <option value="category">Category</option>
-            <option value="price">Price</option>
-            <option value="quantity">Quantity</option>
-            <option value="supplier">Supplier</option>
-          </select>
-
-          <select
-            className="rounded-md border px-3 py-2"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-          >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
+          <div className="text-sm text-muted-foreground">
+            Total: {inventory.length} items
+          </div>
         </div>
 
-        <div className="overflow-x-auto rounded-md border">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-100">
-              <tr>
-                {["SKU", "Product", "Category", "Price", "Qty", "Supplier", "Actions"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left">{h}</th>
+        {inventory.length === 0 ? (
+          <EmptyState
+            title="No inventory data"
+            description="There are no approved inventory items yet. Staff can create a stock request to add new products."
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="cursor-pointer px-4 py-3 text-left font-semibold"
+                        onClick={header.column.getToggleSortingHandler()}
+                      >
+                        <div className="flex items-center gap-2">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {{
+                            asc: "↑",
+                            desc: "↓",
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((item) => (
-                <tr key={item.id} className="border-t">
-                  <td className="px-4 py-3">{item.sku}</td>
-                  <td className="px-4 py-3">{item.productName}</td>
-                  <td className="px-4 py-3">{item.category}</td>
-                  <td className="px-4 py-3">Rp {item.price.toLocaleString("id-ID")}</td>
-                  <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">{item.supplier}</td>
-                  <td className="px-4 py-3">
-                    {role === "staff" ? (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedItem(item);
-                            setOpen(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(item)}
-                          disabled={isLoading}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">View only</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+
+              <tbody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={columns.length}
+                      className="px-4 py-10 text-center text-muted-foreground"
+                    >
+                      No matching inventory found.
+                    </td>
+                  </tr>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <tr key={row.id} className="border-t">
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-4 py-3 align-top">
+                          {flexRender(
+                            cell.column.columnDef.cell ?? cell.column.columnDef.header,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <InventoryFormModal
           open={open}
