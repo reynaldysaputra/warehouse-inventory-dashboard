@@ -4,13 +4,12 @@ import { useEffect } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { useInventoryStore } from "@/store/inventory-store";
 import { useAuthStore } from "@/store/auth-store";
-import { InventoryTable } from "@/components/inventory/inventory-table";
-import { StockChartSection } from "@/components/inventory/stock-chart";
-import { ApprovalTable } from "@/components/approval/approval-table";
+import { DashboardTabs } from "@/components/dashboard/dashboard-tabs";
+import { SummaryCards } from "@/components/dashboard/summary-card";
 
 export default function HomePage() {
   const { initialize } = useInventoryStore();
-  const { role, initRole } = useAuthStore();
+  const { initRole } = useAuthStore();
 
   useEffect(() => {
     initialize();
@@ -22,9 +21,8 @@ export default function HomePage() {
       <Navbar />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-6">
-        <InventoryTable />
-        <StockChartSection />
-        {role === "officer" && <ApprovalTable />}
+        <SummaryCards />
+        <DashboardTabs />
       </div>
     </main>
   );
