@@ -4,7 +4,7 @@ Frontend technical test project for **Frontend Engineer Interview**.
 This project simulates a warehouse inventory system with a **Maker-Checker approval workflow**, where stock changes made by **Staff** must be reviewed by an **Officer** before updating the live inventory.
 
 ## Live Demo
-Deployed URL: [Add your Vercel link here]
+Deployed URL: https://warehouse-inventory-dashboard-indol.vercel.app/
 
 ---
 
