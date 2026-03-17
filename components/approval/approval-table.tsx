@@ -1,39 +1,72 @@
 "use client";
 
+import { toast } from "sonner";
 import { useInventoryStore } from "@/store/inventory-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/shared/empty-state";
+import { DiffView } from "./diff-view";
+import { formatDateTime } from "@/lib/helpers";
 
 export function ApprovalTable() {
   const { requests, approveRequest, rejectRequest, isLoading } = useInventoryStore();
 
   const pendingRequests = requests.filter((req) => req.status === "pending");
 
+  const handleApprove = async (id: string) => {
+    await approveRequest(id);
+    toast.success("Request approved successfully.");
+  };
+
+  const handleReject = async (id: string) => {
+    await rejectRequest(id);
+    toast.success("Request rejected.");
+  };
+
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle>Approval Dashboard (Officer)</CardTitle>
+        <CardTitle>Approval Dashboard</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Review and approve/reject pending stock change requests.
+        </p>
       </CardHeader>
 
       <CardContent>
         {pendingRequests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No pending requests.</p>
+          <EmptyState
+            title="No pending requests"
+            description="All stock change requests have been reviewed. New requests from staff will appear here."
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {pendingRequests.map((req) => (
-              <div key={req.id} className="rounded-lg border p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold uppercase">{req.type} Request</p>
-                    <p className="text-sm text-muted-foreground">
-                      Submitted: {new Date(req.createdAt).toLocaleString("id-ID")}
-                    </p>
+              <div key={req.id} className="rounded-xl border p-5 shadow-sm">
+                <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="uppercase">
+                        {req.type}
+                      </Badge>
+                      <Badge variant="outline">Pending</Badge>
+                    </div>
+
+                    <div className="text-sm text-muted-foreground">
+                      <p>Submitted: {formatDateTime(req.createdAt)}</p>
+                      <p>
+                        Item:{" "}
+                        {req.proposedData?.productName ||
+                          req.originalData?.productName ||
+                          "N/A"}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => approveRequest(req.id)}
+                      onClick={() => handleApprove(req.id)}
                       disabled={isLoading}
                     >
                       Approve
@@ -41,7 +74,7 @@ export function ApprovalTable() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => rejectRequest(req.id)}
+                      onClick={() => handleReject(req.id)}
                       disabled={isLoading}
                     >
                       Reject
@@ -49,21 +82,7 @@ export function ApprovalTable() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 font-medium">Original Value</p>
-                    <pre className="text-xs whitespace-pre-wrap">
-                      {JSON.stringify(req.originalData, null, 2) || "N/A"}
-                    </pre>
-                  </div>
-
-                  <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 font-medium">Proposed Value</p>
-                    <pre className="text-xs whitespace-pre-wrap">
-                      {JSON.stringify(req.proposedData, null, 2) || "N/A"}
-                    </pre>
-                  </div>
-                </div>
+                <DiffView request={req} />
               </div>
             ))}
           </div>
