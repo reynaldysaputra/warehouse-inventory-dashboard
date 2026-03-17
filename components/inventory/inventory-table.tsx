@@ -240,10 +240,7 @@ export function InventoryTable() {
                     <tr key={row.id} className="border-t">
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-4 py-3 align-top">
-                          {flexRender(
-                            cell.column.columnDef.cell ?? cell.column.columnDef.header,
-                            cell.getContext()
-                          )}
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
                     </tr>
