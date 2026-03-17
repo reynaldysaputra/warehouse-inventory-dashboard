@@ -11,12 +11,12 @@ export function RoleSwitcher() {
   }, [initRole]);
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-sm font-medium">Logged in as:</label>
+    <div className="flex flex-col gap-1 md:items-end">
+      <label className="text-xs font-medium text-muted-foreground">Logged in as</label>
       <select
         value={role}
         onChange={(e) => setRole(e.target.value as "staff" | "officer")}
-        className="rounded-md border px-3 py-2 text-sm"
+        className="rounded-md border bg-white px-3 py-2 text-sm"
       >
         <option value="staff">Staff (Maker)</option>
         <option value="officer">Officer (Checker)</option>
