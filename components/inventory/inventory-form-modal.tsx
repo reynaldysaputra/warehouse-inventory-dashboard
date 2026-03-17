@@ -20,8 +20,8 @@ const schema = z.object({
   sku: z.string().min(1, "SKU is required"),
   productName: z.string().min(1, "Product name is required"),
   category: z.string().min(1, "Category is required"),
-  price: z.coerce.number().min(1, "Price must be greater than 0"),
-  quantity: z.coerce.number().min(0, "Quantity cannot be negative"),
+  price: z.number().min(1, "Price must be greater than 0"),
+  quantity: z.number().min(0, "Quantity cannot be negative"),
   supplier: z.string().min(1, "Supplier is required"),
 });
 
@@ -158,13 +158,21 @@ export function InventoryFormModal({ open, onOpenChange, selectedItem }: Props) 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Price</label>
-              <input type="number" {...register("price")} className={fieldClassName} />
+              <input
+                type="number"
+                {...register("price", { valueAsNumber: true })}
+                className={fieldClassName}
+              />
               {errors.price && <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>}
             </div>
 
             <div>
               <label className="mb-1 block text-sm font-medium">Quantity</label>
-              <input type="number" {...register("quantity")} className={fieldClassName} />
+              <input
+                type="number"
+                {...register("quantity", { valueAsNumber: true })}
+                className={fieldClassName}
+              />
               {errors.quantity && <p className="mt-1 text-xs text-red-500">{errors.quantity.message}</p>}
             </div>
           </div>
